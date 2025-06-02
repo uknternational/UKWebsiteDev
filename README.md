@@ -1,6 +1,37 @@
 # uk_international
 
-A new Flutter project.
+A modern, scalable Flutter web app for a perfume e-commerce business.
+
+## Features
+
+### User Features
+- **Product Listing**: Browse all available perfumes in a grid layout.
+- **Product Search**: Search for products by name.
+- **Responsive UI**: Modern, mobile-friendly, and desktop-friendly design.
+
+### Admin Features
+- **Admin Authentication**:
+  - Email/Password login
+  - Google Sign-In
+  - Forgot Password (password reset via email)
+- **Admin Dashboard**: Protected area for admins (placeholder, to be expanded)
+
+### Technical
+- **State Management**: Uses flutter_bloc for scalable state management.
+- **Supabase Integration**: Products and authentication are managed via Supabase.
+- **Theming**: Custom color palette and typography for a luxury brand feel.
+
+## Planned/Upcoming Features
+- Add/Edit/Delete products (admin)
+- Set prices, discounts (admin)
+- Cart and Wishlist for users
+- WhatsApp order integration
+- Analytics (Firebase Analytics)
+- SEO and performance optimizations
+
+---
+
+For setup and contribution instructions, see below (to be expanded as the project grows).
 
 ## Getting Started
 
