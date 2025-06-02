@@ -294,8 +294,6 @@ class _ProductDialogState extends State<_ProductDialog> {
   late final TextEditingController _descController;
   late final TextEditingController _mrpController;
   late final TextEditingController _offerController;
-  late final TextEditingController _priceAfterOfferController;
-  late final TextEditingController _priceController;
   late final TextEditingController _imageUrlController;
   late final TextEditingController _categoryController;
   late final TextEditingController _stockController;
@@ -308,10 +306,6 @@ class _ProductDialogState extends State<_ProductDialog> {
     _descController = TextEditingController(text: p?.description ?? '');
     _mrpController = TextEditingController(text: p?.mrp.toString() ?? '');
     _offerController = TextEditingController(text: p?.offer.toString() ?? '');
-    _priceAfterOfferController = TextEditingController(
-      text: p?.priceAfterOffer.toString() ?? '',
-    );
-    _priceController = TextEditingController(text: p?.price.toString() ?? '');
     _imageUrlController = TextEditingController(text: p?.imageUrl ?? '');
     _categoryController = TextEditingController(text: p?.category ?? '');
     _stockController = TextEditingController(text: p?.stock.toString() ?? '');
@@ -323,28 +317,33 @@ class _ProductDialogState extends State<_ProductDialog> {
     _descController.dispose();
     _mrpController.dispose();
     _offerController.dispose();
-    _priceAfterOfferController.dispose();
-    _priceController.dispose();
     _imageUrlController.dispose();
     _categoryController.dispose();
     _stockController.dispose();
     super.dispose();
   }
 
+  double _calculatePriceAfterOffer(double mrp, double offer) {
+    return mrp - (mrp * offer / 100);
+  }
+
   void _submit() {
     if (_formKey.currentState!.validate()) {
       final now = DateTime.now();
+      final mrp = double.tryParse(_mrpController.text) ?? 0.0;
+      final offer = double.tryParse(_offerController.text) ?? 0.0;
+      final priceAfterOffer = _calculatePriceAfterOffer(mrp, offer);
+
       final product = Product(
         id:
             widget.product?.id ??
             DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nameController.text.trim(),
         description: _descController.text.trim(),
-        mrp: double.tryParse(_mrpController.text) ?? 0.0,
-        offer: double.tryParse(_offerController.text) ?? 0.0,
-        priceAfterOffer:
-            double.tryParse(_priceAfterOfferController.text) ?? 0.0,
-        price: double.tryParse(_priceController.text) ?? 0.0,
+        mrp: mrp,
+        offer: offer,
+        priceAfterOffer: priceAfterOffer,
+        price: priceAfterOffer, // Using priceAfterOffer as the display price
         imageUrl: _imageUrlController.text.trim(),
         category: _categoryController.text.trim(),
         stock: int.tryParse(_stockController.text) ?? 0,
@@ -385,27 +384,25 @@ class _ProductDialogState extends State<_ProductDialog> {
                 controller: _mrpController,
                 decoration: const InputDecoration(labelText: 'MRP'),
                 keyboardType: TextInputType.number,
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  final mrp = double.tryParse(v);
+                  if (mrp == null || mrp <= 0) return 'Enter a valid price';
+                  return null;
+                },
               ),
               TextFormField(
                 controller: _offerController,
                 decoration: const InputDecoration(labelText: 'Offer (%)'),
                 keyboardType: TextInputType.number,
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _priceAfterOfferController,
-                decoration: const InputDecoration(
-                  labelText: 'Price After Offer',
-                ),
-                keyboardType: TextInputType.number,
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _priceController,
-                decoration: const InputDecoration(labelText: 'Base Price'),
-                keyboardType: TextInputType.number,
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  final offer = double.tryParse(v);
+                  if (offer == null || offer < 0 || offer > 100) {
+                    return 'Enter a valid percentage (0-100)';
+                  }
+                  return null;
+                },
               ),
               TextFormField(
                 controller: _imageUrlController,
@@ -421,7 +418,12 @@ class _ProductDialogState extends State<_ProductDialog> {
                 controller: _stockController,
                 decoration: const InputDecoration(labelText: 'Stock'),
                 keyboardType: TextInputType.number,
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  final stock = int.tryParse(v);
+                  if (stock == null || stock < 0) return 'Enter a valid stock';
+                  return null;
+                },
               ),
             ],
           ),
