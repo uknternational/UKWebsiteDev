@@ -6,6 +6,7 @@ import 'coupon_repository.dart';
 import 'admin_coupon_bloc.dart';
 import '../../models/product_model.dart';
 import '../../models/coupon_model.dart';
+import '../../core/config/environment.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -22,6 +23,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    EnvironmentConfig.initialize(Environment.staging);
   }
 
   @override

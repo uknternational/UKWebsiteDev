@@ -62,6 +62,10 @@ dependencies:
   image_picker: ^1.0.7
   google_fonts: ^6.2.1
 
+  # Carousel and Rating
+  carousel_slider: ^5.0.0
+  flutter_rating_bar: ^4.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -116,3 +120,6 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  assets:
+    - assets/logo.png
