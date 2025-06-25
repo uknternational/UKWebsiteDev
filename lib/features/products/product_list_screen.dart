@@ -3,69 +3,108 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'product_bloc.dart';
 import 'product_repository.dart';
 import '../../models/product_model.dart';
+import '../../models/carousel_image_model.dart';
+import '../../models/offer_model.dart';
+import '../../models/customer_review_model.dart';
+import '../admin/carousel_repository.dart';
+import '../admin/offer_repository.dart';
+import '../admin/review_repository.dart';
 import 'package:go_router/go_router.dart';
 import 'product_card.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../cart/cart_service.dart';
+import '../../services/auth_service.dart';
+import '../../widgets/login_dialog.dart';
+import '../../widgets/profile_dialog.dart';
 
 class ProductListScreen extends StatefulWidget {
-  const ProductListScreen({Key? key}) : super(key: key);
+  const ProductListScreen({super.key});
 
   @override
   State<ProductListScreen> createState() => _ProductListScreenState();
 }
 
 class _ProductListScreenState extends State<ProductListScreen> {
-  // Dummy data for categories, offers, reviews, and brand values
+  final PageController _pageController = PageController();
+  int _currentCarouselIndex = 0;
+  List<CarouselImage> _carouselImages = [];
+  List<Offer> _offers = [];
+  List<CustomerReview> _reviews = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCarouselImages();
+    _loadOffers();
+    _loadReviews();
+    context.read<ProductBloc>().add(LoadProducts());
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCarouselImages() async {
+    try {
+      final images = await CarouselRepository().fetchActiveCarouselImages();
+      setState(() {
+        _carouselImages = images;
+      });
+    } catch (e) {
+      print('Error loading carousel images: $e');
+    }
+  }
+
+  Future<void> _loadOffers() async {
+    try {
+      final offers = await OfferRepository().fetchActiveOffers();
+      setState(() {
+        _offers = offers;
+      });
+    } catch (e) {
+      print('Error loading offers: $e');
+    }
+  }
+
+  Future<void> _loadReviews() async {
+    try {
+      final reviews = await ReviewRepository().fetchActiveReviews();
+      setState(() {
+        _reviews = reviews;
+      });
+    } catch (e) {
+      print('Error loading reviews: $e');
+    }
+  }
+
+  void _onCarouselPageChanged(int index, CarouselPageChangedReason reason) {
+    setState(() {
+      _currentCarouselIndex = index;
+    });
+  }
+
+  // Updated categories for Premium, Luxury, Arabic perfumes
   final List<Map<String, String>> categories = [
-    {'label': 'Luxury Perfumes', 'icon': '💎'},
-    {'label': 'Skincare', 'icon': '🧴'},
-    {'label': 'Bath & Body', 'icon': '🛁'},
-    {'label': 'Gift Sets', 'icon': '🎁'},
-    {'label': 'Cosmetics', 'icon': '💄'},
+    {'icon': '👑', 'label': 'Premium Perfumes'},
+    {'icon': '💎', 'label': 'Luxury Perfumes'},
+    {'icon': '🏺', 'label': 'Arabic Perfumes'},
+    {'icon': '🌸', 'label': 'For Women'},
+    {'icon': '🕴️', 'label': 'For Men'},
+    {'icon': '⚧️', 'label': 'Gender Neutral'},
   ];
 
-  final List<Map<String, String>> offers = [
-    {'title': 'Buy Any 3 for ₹999', 'desc': 'Mix & match your favorites!'},
-    {'title': '2 for ₹649', 'desc': 'Best combos for you.'},
-    {'title': 'Self Care Kit', 'desc': '12 for ₹1298 only!'},
-  ];
-
-  final List<Map<String, dynamic>> reviews = [
-    {
-      'avatar': '',
-      'name': 'Sanna Thakur',
-      'review':
-          'UKInternational has raised the bar for the perfume industry. Such good quality at very affordable price.',
-      'rating': 4.5,
-    },
-    {
-      'avatar': '',
-      'name': 'Amit Sharma',
-      'review': 'Amazing fragrances and fast delivery! Highly recommended.',
-      'rating': 5.0,
-    },
-    {
-      'avatar': '',
-      'name': 'Priya Singh',
-      'review': 'Loved the packaging and the scent lasts all day.',
-      'rating': 4.0,
-    },
-  ];
+  String? selectedCategory; // Track selected category
 
   final List<Map<String, String>> brandValues = [
     {'icon': '🌱', 'label': 'Cruelty Free'},
     {'icon': '💰', 'label': 'Affordable Luxury'},
     {'icon': '🌸', 'label': 'Fragrance Forward'},
     {'icon': '⚧️', 'label': 'Gender Neutral'},
-  ];
-
-  // Add a list of carousel images (network URLs)
-  final List<String> carouselImages = [
-    'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80',
   ];
 
   @override
@@ -75,22 +114,100 @@ class _ProductListScreenState extends State<ProductListScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0C1B33), // Midnight navy
         elevation: 0,
-        title: Row(
-          children: [
-            Image.asset('assets/logo.png', height: 46),
-            const SizedBox(width: 12),
-            const Text(
-              'UKInternational',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
+        title: LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 600;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/logo.png', height: isMobile ? 32 : 46),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'UKInternational',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: isMobile ? 16 : 18,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined),
-            onPressed: () {},
+          // Cart with badge
+          StreamBuilder<int>(
+            stream: Stream.periodic(
+              const Duration(seconds: 1),
+            ).asyncMap((_) => CartService.getCartItemCount()),
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.shopping_cart_outlined,
+                      color: Colors.white,
+                    ),
+                    onPressed: () => context.push('/cart'),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '$count',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
-          IconButton(icon: const Icon(Icons.person_outline), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.favorite_border, color: Colors.white),
+            onPressed: () => context.push('/wishlist'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_outline, color: Colors.white),
+            onPressed: () {
+              if (AuthService().isLoggedIn) {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => const ProfileDialog(),
+                );
+              } else {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => const LoginDialog(),
+                );
+              }
+            },
+          ),
+          // Admin Login Button
+          IconButton(
+            icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
+            onPressed: () => context.push('/admin-login'),
+            tooltip: 'Admin Login',
+          ),
         ],
       ),
       body: LayoutBuilder(
@@ -98,7 +215,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
           final isDesktop = constraints.maxWidth >= 1000;
           final isTablet =
               constraints.maxWidth >= 600 && constraints.maxWidth < 1000;
-          final horizontalPadding = isDesktop
+          final isMobile = constraints.maxWidth < 600;
+
+          final contentPadding = isDesktop
               ? 120.0
               : isTablet
               ? 32.0
@@ -108,401 +227,640 @@ class _ProductListScreenState extends State<ProductListScreen> {
               : isTablet
               ? 3
               : 2;
+
           return SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: 0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Hero Banner
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Hero Banner - Full Width
+                if (_carouselImages.isNotEmpty)
                   CarouselSlider(
                     options: CarouselOptions(
                       height: isDesktop
-                          ? 340
+                          ? 500
                           : isTablet
-                          ? 260
-                          : 180,
+                          ? 400
+                          : 250,
                       autoPlay: true,
-                      enlargeCenterPage: true,
-                      viewportFraction: 0.9,
+                      enlargeCenterPage: false,
+                      viewportFraction: 1.0,
                       aspectRatio: 16 / 9,
+                      onPageChanged: _onCarouselPageChanged,
                     ),
-                    items: carouselImages
+                    items: _carouselImages
                         .map(
-                          (url) => ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
+                          (image) => Container(
+                            width: double.infinity,
                             child: Image.network(
-                              url,
+                              image.imageUrl,
                               fit: BoxFit.cover,
                               width: double.infinity,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.image, size: 50),
+                                  ),
                             ),
                           ),
                         )
                         .toList(),
                   ),
-                  const SizedBox(height: 16),
-                  // Categories
-                  SizedBox(
-                    height: 90,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: categories.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 16),
-                      itemBuilder: (context, i) => Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 26,
-                            backgroundColor: const Color(
-                              0xFFECD9B0,
-                            ), // Classic cream
-                            child: Text(
-                              categories[i]['icon']!,
-                              style: const TextStyle(fontSize: 28),
+
+                // Content with padding
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: contentPadding,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Categories - Fixed overflow
+                      SizedBox(
+                        height: isMobile ? 100 : 110,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          itemCount: categories.length,
+                          separatorBuilder: (_, __) =>
+                              SizedBox(width: isMobile ? 16 : 24),
+                          itemBuilder: (context, i) => GestureDetector(
+                            onTap: () =>
+                                _onCategoryTap(categories[i]['label']!),
+                            child: Container(
+                              width: isMobile ? 80 : 90,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircleAvatar(
+                                    radius: isMobile ? 25 : 30,
+                                    backgroundColor:
+                                        selectedCategory ==
+                                            categories[i]['label']
+                                        ? const Color(0xFF0C1B33)
+                                        : const Color(0xFFECD9B0),
+                                    child: Text(
+                                      categories[i]['icon']!,
+                                      style: TextStyle(
+                                        fontSize: isMobile ? 24 : 32,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Flexible(
+                                    child: Text(
+                                      categories[i]['label']!,
+                                      style: TextStyle(
+                                        fontSize: isMobile ? 11 : 14,
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            selectedCategory ==
+                                                categories[i]['label']
+                                            ? const Color(0xFF0C1B33)
+                                            : Colors.black,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            categories[i]['label']!,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Offers - Fixed constraints
+                      if (_offers.isNotEmpty) ...[
+                        SizedBox(
+                          height: isMobile ? 100 : 120,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            itemCount: _offers.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 16),
+                            itemBuilder: (context, i) => ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: isDesktop
+                                    ? 320
+                                    : isTablet
+                                    ? 260
+                                    : 220,
+                                minWidth: isDesktop
+                                    ? 320
+                                    : isTablet
+                                    ? 260
+                                    : 200,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0C1B33),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        _offers[i].title,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: isMobile ? 14 : 16,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Flexible(
+                                      child: Text(
+                                        _offers[i].description,
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: isMobile ? 11 : 13,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Bestsellers with improved button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Bestsellers',
+                              style: TextStyle(
+                                fontSize: isMobile ? 18 : 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: ElevatedButton.icon(
+                              onPressed: () => context.push('/products'),
+                              icon: Icon(
+                                Icons.arrow_forward,
+                                size: isMobile ? 16 : 18,
+                              ),
+                              label: Text(
+                                isMobile ? 'Show All' : 'Show All Products',
+                                style: TextStyle(fontSize: isMobile ? 12 : 14),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0C1B33),
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isMobile ? 12 : 20,
+                                  vertical: isMobile ? 8 : 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Offers
-                  SizedBox(
-                    height: 120,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: offers.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 16),
-                      itemBuilder: (context, i) => Container(
-                        width: isDesktop
-                            ? 320
-                            : isTablet
-                            ? 260
-                            : 220,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0C1B33),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
+                      const SizedBox(height: 16),
+
+                      // Products Grid
+                      BlocBuilder<ProductBloc, ProductState>(
+                        builder: (context, state) {
+                          if (state is ProductLoading) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          } else if (state is ProductLoaded) {
+                            if (state.products.isEmpty) {
+                              return const Center(
+                                child: Text('No products found.'),
+                              );
+                            }
+
+                            // Filter for bestsellers
+                            final bestsellers = state.products
+                                .where((product) => product.isTopSelling)
+                                .take(4)
+                                .toList();
+
+                            final displayProducts = bestsellers.isEmpty
+                                ? state.products.take(4).toList()
+                                : bestsellers;
+
+                            return GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: gridCrossAxisCount,
+                                    childAspectRatio: isMobile ? 0.65 : 0.7,
+                                    crossAxisSpacing: isMobile ? 12 : 16,
+                                    mainAxisSpacing: isMobile ? 12 : 16,
+                                  ),
+                              itemCount: displayProducts.length,
+                              itemBuilder: (context, index) {
+                                final product = displayProducts[index];
+                                return GestureDetector(
+                                  onTap: () {
+                                    context.push(
+                                      '/product/${product.id}',
+                                      extra: product,
+                                    );
+                                  },
+                                  child: ProductCard(
+                                    product: product,
+                                    rating: 4.5,
+                                  ),
+                                );
+                              },
+                            );
+                          } else if (state is ProductError) {
+                            return Center(child: Text(state.message));
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Customer Reviews - Fixed constraints
+                      if (_reviews.isNotEmpty) ...[
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              offers[i]['title']!,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              'What Our Customers Say',
+                              style: TextStyle(
+                                fontSize: isMobile ? 18 : 22,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              offers[i]['desc']!,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              height: isMobile ? 120 : 140,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                itemCount: _reviews.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 16),
+                                itemBuilder: (context, i) => ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth: isDesktop
+                                        ? 340
+                                        : isTablet
+                                        ? 300
+                                        : 280,
+                                    minWidth: isDesktop
+                                        ? 340
+                                        : isTablet
+                                        ? 300
+                                        : 260,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.04),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        CircleAvatar(
+                                          radius: isMobile ? 16 : 20,
+                                          backgroundColor: const Color(
+                                            0xFFA9744F,
+                                          ),
+                                          child: Text(
+                                            _reviews[i].customerName[0],
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: isMobile ? 12 : 14,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                _reviews[i].customerName,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: isMobile ? 12 : 14,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Flexible(
+                                                child: Text(
+                                                  _reviews[i].reviewText,
+                                                  style: TextStyle(
+                                                    fontSize: isMobile
+                                                        ? 10
+                                                        : 12,
+                                                  ),
+                                                  maxLines: isMobile ? 2 : 3,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              RatingBarIndicator(
+                                                rating: _reviews[i].rating,
+                                                itemBuilder: (context, _) =>
+                                                    const Icon(
+                                                      Icons.star,
+                                                      color: Colors.amber,
+                                                    ),
+                                                itemCount: 5,
+                                                itemSize: isMobile
+                                                    ? 12.0
+                                                    : 16.0,
+                                                direction: Axis.horizontal,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Bestsellers
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Bestsellers',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          context.push('/products');
-                        },
-                        child: const Text('View All'),
-                      ),
-                    ],
-                  ),
-                  BlocBuilder<ProductBloc, ProductState>(
-                    builder: (context, state) {
-                      if (state is ProductLoading) {
-                        return const Center(child: CircularProgressIndicator());
-                      } else if (state is ProductLoaded) {
-                        if (state.products.isEmpty) {
-                          return const Center(
-                            child: Text('No products found.'),
-                          );
-                        }
-                        return GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: gridCrossAxisCount,
-                                childAspectRatio: 0.7,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                              ),
-                          itemCount: state.products.length > 4
-                              ? 4
-                              : state.products.length,
-                          itemBuilder: (context, index) {
-                            final product = state.products[index];
-                            return GestureDetector(
-                              onTap: () {
-                                context.push(
-                                  '/product/${product.id}',
-                                  extra: product,
-                                );
-                              },
-                              child: ProductCard(product: product, rating: 4.5),
+                        const SizedBox(height: 32),
+                      ],
+
+                      // Brand Values - Responsive layout
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: isMobile ? 16 : 32,
+                              runSpacing: 16,
+                              children: brandValues
+                                  .map(
+                                    (val) => SizedBox(
+                                      width: isMobile ? 80 : 100,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          CircleAvatar(
+                                            radius: isMobile ? 20 : 25,
+                                            backgroundColor: const Color(
+                                              0xFFECD9B0,
+                                            ),
+                                            child: Text(
+                                              val['icon']!,
+                                              style: TextStyle(
+                                                fontSize: isMobile ? 18 : 22,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            val['label']!,
+                                            style: TextStyle(
+                                              fontSize: isMobile ? 10 : 12,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
                             );
                           },
-                        );
-                      } else if (state is ProductError) {
-                        return Center(child: Text(state.message));
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  // Customer Reviews
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'What Our Customers Say',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 140,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: reviews.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 16),
-                          itemBuilder: (context, i) => Container(
-                            width: isDesktop
-                                ? 340
-                                : isTablet
-                                ? 300
-                                : 260,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: const Color(0xFFA9744F),
-                                  child: Text(
-                                    reviews[i]['name']![0],
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        reviews[i]['name']!,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Flexible(
-                                        child: Text(
-                                          reviews[i]['review']!,
-                                          style: const TextStyle(fontSize: 12),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      RatingBarIndicator(
-                                        rating: reviews[i]['rating'] ?? 4.5,
-                                        itemBuilder: (context, _) => const Icon(
-                                          Icons.star,
-                                          color: Colors.amber,
-                                        ),
-                                        itemCount: 5,
-                                        itemSize: 16.0,
-                                        direction: Axis.horizontal,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  // Brand Values
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 32,
-                      runSpacing: 16,
-                      children: brandValues
-                          .map(
-                            (val) => Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: const Color(0xFFECD9B0),
-                                  child: Text(
-                                    val['icon']!,
-                                    style: const TextStyle(fontSize: 22),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  val['label']!,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          )
-                          .toList(),
-                    ),
+                ),
+
+                // Footer - Full Width with responsive content
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: contentPadding,
+                    vertical: 32,
                   ),
-                  // Footer
-                  Container(
-                    margin: const EdgeInsets.only(top: 24),
-                    padding: const EdgeInsets.all(24),
-                    color: const Color(0xFF0C1B33),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Image.asset('assets/logo.png', height: 32),
-                            const SizedBox(width: 10),
-                            const Text(
+                  color: const Color(0xFF0C1B33),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Image.asset(
+                            'assets/logo.png',
+                            height: isMobile ? 24 : 32,
+                          ),
+                          const SizedBox(width: 10),
+                          Flexible(
+                            child: Text(
                               'UKInternational',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 18,
+                                fontSize: isMobile ? 16 : 18,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Wrap(
+                        spacing: isMobile ? 16 : 24,
+                        runSpacing: 8,
+                        children: [
+                          Text(
+                            'Terms & Conditions',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: isMobile ? 12 : 14,
+                            ),
+                          ),
+                          Text(
+                            'Privacy Policy',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: isMobile ? 12 : 14,
+                            ),
+                          ),
+                          Text(
+                            'Contact Us',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: isMobile ? 12 : 14,
+                            ),
+                          ),
+                          Text(
+                            'Support',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: isMobile ? 12 : 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      GestureDetector(
+                        onTap: _launchEmail,
+                        child: Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Icon(Icons.email, color: Colors.white70, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              'ukinternationalperfumes@gmail.com',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                decoration: TextDecoration.underline,
+                                fontSize: isMobile ? 12 : 14,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        Wrap(
-                          spacing: 24,
-                          runSpacing: 8,
-                          children: [
-                            Text(
-                              'Terms & Conditions',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                            Text(
-                              'Privacy Policy',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                            Text(
-                              'Contact Us',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                            Text(
-                              'Support',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Icon(Icons.email, color: Colors.white70, size: 18),
-                            const SizedBox(width: 6),
-                            Text(
-                              'support@ukinternational.com',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
+                      ),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: _launchWhatsApp,
+                        child: Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Icon(Icons.phone, color: Colors.white70, size: 18),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Text(
-                              '+91 90000 00000',
-                              style: TextStyle(color: Colors.white70),
+                              '+91 7600662616',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                decoration: TextDecoration.underline,
+                                fontSize: isMobile ? 12 : 14,
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Icon(Icons.facebook, color: Colors.white70),
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.link,
+                      ),
+                      const SizedBox(height: 20),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: _launchInstagram,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white10,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: FaIcon(
+                                FontAwesomeIcons.instagram,
+                                color: Colors.white70,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '@_uk_international',
+                            style: TextStyle(
                               color: Colors.white70,
-                            ), // TODO: Replace with Instagram icon
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.link,
-                              color: Colors.white70,
-                            ), // TODO: Replace with Twitter icon
-                          ],
+                              fontSize: isMobile ? 12 : 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        '© 2025, UKInternational. All rights reserved.',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: isMobile ? 10 : 12,
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          '© 2025, UKInternational. All rights reserved.',
-                          style: TextStyle(color: Colors.white38, fontSize: 12),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },
       ),
     );
+  }
+
+  // Business contact methods
+  void _launchWhatsApp() async {
+    const url = 'https://wa.me/917600662616';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    }
+  }
+
+  void _launchInstagram() async {
+    const url = 'https://instagram.com/_uk_international';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    }
+  }
+
+  void _launchEmail() async {
+    const url = 'mailto:ukinternationalperfumes@gmail.com';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    }
+  }
+
+  void _onCategoryTap(String category) {
+    setState(() {
+      selectedCategory = selectedCategory == category ? null : category;
+    });
+    // Trigger product filtering
+    if (selectedCategory != null) {
+      context.read<ProductBloc>().add(
+        FilterProductsByCategory(selectedCategory!),
+      );
+    } else {
+      context.read<ProductBloc>().add(LoadProducts());
+    }
   }
 }
 
@@ -576,13 +934,17 @@ class ProductDetailsScreen extends StatelessWidget {
             Row(
               children: [
                 ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    // TODO: Add to wishlist
+                  },
                   icon: const Icon(Icons.favorite_border),
                   label: const Text('Wishlist'),
                 ),
                 const SizedBox(width: 16),
                 ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    // TODO: Add to cart
+                  },
                   icon: const Icon(Icons.shopping_cart),
                   label: const Text('Add to Cart'),
                 ),

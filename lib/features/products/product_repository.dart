@@ -23,13 +23,33 @@ class ProductRepository {
       final response = await _client
           .from('products')
           .select()
-          .ilike('name', '%$query%');
+          .or(
+            'name.ilike.%$query%,description.ilike.%$query%,category.ilike.%$query%',
+          );
+
       if (response == null) return [];
       return (response as List)
           .map((json) => Product.fromJson(json as Map<String, dynamic>))
           .toList();
     } catch (e) {
       print('Error searching products: $e');
+      return [];
+    }
+  }
+
+  Future<List<Product>> fetchProductsByCategory(String category) async {
+    try {
+      final response = await _client
+          .from('products')
+          .select()
+          .eq('category', category);
+
+      if (response == null) return [];
+      return (response as List)
+          .map((json) => Product.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('Error fetching products by category: $e');
       return [];
     }
   }

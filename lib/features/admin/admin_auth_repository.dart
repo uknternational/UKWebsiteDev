@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show Provider;
 
 class AdminAuthRepository {
   final SupabaseClient _client = Supabase.instance.client;
@@ -21,10 +20,6 @@ class AdminAuthRepository {
 
   Future<void> sendPasswordResetEmail(String email) async {
     await _client.auth.resetPasswordForEmail(email);
-  }
-
-  Future<void> signInWithGoogle() async {
-    await _client.auth.signInWithOAuth(OAuthProvider.google);
   }
 
   User? get currentUser => _client.auth.currentUser;

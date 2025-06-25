@@ -34,10 +34,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     }
   }
 
-  void _onGoogleSignIn() {
-    context.read<AdminAuthBloc>().add(AdminGoogleSignInRequested());
-  }
-
   void _onForgotPassword() {
     if (_emailController.text.trim().isNotEmpty) {
       context.read<AdminAuthBloc>().add(
@@ -53,16 +49,27 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin Login')),
+      backgroundColor: const Color(0xFFF8F5EF),
+      appBar: AppBar(
+        title: const Text('Admin Login'),
+        backgroundColor: const Color(0xFF0C1B33),
+        foregroundColor: Colors.white,
+      ),
       body: BlocConsumer<AdminAuthBloc, AdminAuthState>(
         listener: (context, state) {
           if (state is AdminAuthFailure) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(state.message)));
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Login failed: ${state.message}'),
+                backgroundColor: Colors.red,
+              ),
+            );
           } else if (state is AdminForgotPasswordEmailSent) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Password reset email sent!')),
+              const SnackBar(
+                content: Text('Password reset email sent!'),
+                backgroundColor: Colors.green,
+              ),
             );
           } else if (state is AdminAuthSuccess) {
             context.go('/admin/dashboard');
@@ -84,9 +91,25 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Logo and title
+                        Image.asset('assets/logo.png', height: 60),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Admin Login',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0C1B33),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
                         TextFormField(
                           controller: _emailController,
-                          decoration: const InputDecoration(labelText: 'Email'),
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.email),
+                          ),
                           keyboardType: TextInputType.emailAddress,
                           validator: (value) =>
                               value != null && value.contains('@')
@@ -99,6 +122,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                             controller: _passwordController,
                             decoration: const InputDecoration(
                               labelText: 'Password',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.lock),
                             ),
                             obscureText: true,
                             validator: (value) =>
@@ -110,22 +135,31 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         if (state is AdminAuthLoading)
                           const CircularProgressIndicator()
                         else ...[
-                          ElevatedButton(
-                            onPressed: _showForgotPassword
-                                ? _onForgotPassword
-                                : _onLogin,
-                            child: Text(
-                              _showForgotPassword
-                                  ? 'Send Reset Email'
-                                  : 'Login',
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _showForgotPassword
+                                  ? _onForgotPassword
+                                  : _onLogin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0C1B33),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: Text(
+                                _showForgotPassword
+                                    ? 'Send Reset Email'
+                                    : 'Login',
+                                style: const TextStyle(fontSize: 16),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),
-                          OutlinedButton.icon(
-                            icon: const Icon(Icons.login),
-                            label: const Text('Sign in with Google'),
-                            onPressed: _onGoogleSignIn,
-                          ),
                           TextButton(
                             onPressed: () => setState(
                               () => _showForgotPassword = !_showForgotPassword,
@@ -134,6 +168,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               _showForgotPassword
                                   ? 'Back to Login'
                                   : 'Forgot Password?',
+                              style: const TextStyle(color: Color(0xFF0C1B33)),
                             ),
                           ),
                         ],

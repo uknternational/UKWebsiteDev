@@ -29,5 +29,17 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         emit(ProductError('Failed to search products'));
       }
     });
+
+    on<FilterProductsByCategory>((event, emit) async {
+      emit(ProductLoading());
+      try {
+        final products = await repository.fetchProductsByCategory(
+          event.category,
+        );
+        emit(ProductLoaded(products));
+      } catch (e) {
+        emit(ProductError('Failed to filter products by category'));
+      }
+    });
   }
 }

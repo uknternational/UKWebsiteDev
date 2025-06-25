@@ -12,26 +12,27 @@ class AdminAuthBloc extends Bloc<AdminAuthEvent, AdminAuthState> {
     on<AdminSignInRequested>((event, emit) async {
       emit(AdminAuthLoading());
       try {
-        await repository.signInWithEmail(event.email, event.password);
-        emit(AdminAuthSuccess());
-      } catch (e) {
-        emit(AdminAuthFailure(e.toString()));
-      }
-    });
-
-    on<AdminGoogleSignInRequested>((event, emit) async {
-      emit(AdminAuthLoading());
-      try {
-        await repository.signInWithGoogle();
-        emit(AdminAuthSuccess());
+        final response = await repository.signInWithEmail(
+          event.email,
+          event.password,
+        );
+        if (response.user != null) {
+          emit(AdminAuthSuccess());
+        } else {
+          emit(AdminAuthFailure('Login failed: No user returned'));
+        }
       } catch (e) {
         emit(AdminAuthFailure(e.toString()));
       }
     });
 
     on<AdminSignOutRequested>((event, emit) async {
-      await repository.signOut();
-      emit(AdminAuthInitial());
+      try {
+        await repository.signOut();
+        emit(AdminAuthInitial());
+      } catch (e) {
+        emit(AdminAuthFailure(e.toString()));
+      }
     });
 
     on<AdminForgotPasswordRequested>((event, emit) async {
