@@ -500,6 +500,23 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       ),
                       const SizedBox(height: 32),
 
+                      // Product Categories Section
+                      BlocBuilder<ProductBloc, ProductState>(
+                        builder: (context, state) {
+                          if (state is ProductLoaded) {
+                            return _buildProductCategories(
+                              state.products,
+                              isMobile,
+                              isTablet,
+                              isDesktop,
+                              gridCrossAxisCount,
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                      const SizedBox(height: 32),
+
                       // Customer Reviews - Fixed constraints
                       if (_reviews.isNotEmpty) ...[
                         Column(
@@ -514,7 +531,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             ),
                             const SizedBox(height: 16),
                             SizedBox(
-                              height: isMobile ? 120 : 140,
+                              height: isMobile ? 180 : 220,
                               child: ListView.separated(
                                 scrollDirection: Axis.horizontal,
                                 padding: const EdgeInsets.symmetric(
@@ -549,72 +566,113 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                         ),
                                       ],
                                     ),
-                                    child: Row(
+                                    child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        CircleAvatar(
-                                          radius: isMobile ? 16 : 20,
-                                          backgroundColor: const Color(
-                                            0xFFA9744F,
-                                          ),
-                                          child: Text(
-                                            _reviews[i].customerName[0],
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: isMobile ? 12 : 14,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                _reviews[i].customerName,
+                                        Row(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: isMobile ? 16 : 20,
+                                              backgroundColor: const Color(
+                                                0xFFA9744F,
+                                              ),
+                                              child: Text(
+                                                _reviews[i].customerName[0],
                                                 style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
                                                   fontSize: isMobile ? 12 : 14,
                                                 ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                              const SizedBox(height: 4),
-                                              Flexible(
-                                                child: Text(
-                                                  _reviews[i].reviewText,
-                                                  style: TextStyle(
-                                                    fontSize: isMobile
-                                                        ? 10
-                                                        : 12,
-                                                  ),
-                                                  maxLines: isMobile ? 2 : 3,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              RatingBarIndicator(
-                                                rating: _reviews[i].rating,
-                                                itemBuilder: (context, _) =>
-                                                    const Icon(
-                                                      Icons.star,
-                                                      color: Colors.amber,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    _reviews[i].customerName,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: isMobile
+                                                          ? 12
+                                                          : 14,
                                                     ),
-                                                itemCount: 5,
-                                                itemSize: isMobile
-                                                    ? 12.0
-                                                    : 16.0,
-                                                direction: Axis.horizontal,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  RatingBarIndicator(
+                                                    rating: _reviews[i].rating,
+                                                    itemBuilder: (context, _) =>
+                                                        const Icon(
+                                                          Icons.star,
+                                                          color: Colors.amber,
+                                                        ),
+                                                    itemCount: 5,
+                                                    itemSize: isMobile
+                                                        ? 12.0
+                                                        : 16.0,
+                                                    direction: Axis.horizontal,
+                                                  ),
+                                                ],
                                               ),
-                                            ],
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Flexible(
+                                          child: Text(
+                                            _reviews[i].reviewText,
+                                            style: TextStyle(
+                                              fontSize: isMobile ? 10 : 12,
+                                            ),
+                                            maxLines: isMobile ? 2 : 3,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
+                                        // Show review image if available
+                                        if (_reviews[i].imageUrl != null &&
+                                            _reviews[i]
+                                                .imageUrl!
+                                                .isNotEmpty) ...[
+                                          const SizedBox(height: 8),
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            child: Image.network(
+                                              _reviews[i].imageUrl!,
+                                              height: isMobile ? 60 : 80,
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (
+                                                    context,
+                                                    error,
+                                                    stackTrace,
+                                                  ) => Container(
+                                                    height: isMobile ? 60 : 80,
+                                                    width: double.infinity,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.grey[200],
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.image_not_supported,
+                                                      size: isMobile ? 20 : 24,
+                                                      color: Colors.grey[400],
+                                                    ),
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),
@@ -711,6 +769,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         spacing: isMobile ? 16 : 24,
                         runSpacing: 8,
                         children: [
+                          GestureDetector(
+                            onTap: () => context.push('/about'),
+                            child: Text(
+                              'About Us',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: isMobile ? 12 : 14,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
                           Text(
                             'Terms & Conditions',
                             style: TextStyle(
@@ -862,97 +931,102 @@ class _ProductListScreenState extends State<ProductListScreen> {
       context.read<ProductBloc>().add(LoadProducts());
     }
   }
-}
 
-class ProductDetailsScreen extends StatelessWidget {
-  final Product product;
-  const ProductDetailsScreen({required this.product, Key? key})
-    : super(key: key);
+  Widget _buildProductCategories(
+    List<Product> products,
+    bool isMobile,
+    bool isTablet,
+    bool isDesktop,
+    int gridCrossAxisCount,
+  ) {
+    final categories = [
+      {
+        'name': 'Premium Perfumes',
+        'icon': '👑',
+        'products': products
+            .where((p) => p.category == 'Premium Perfumes')
+            .toList(),
+      },
+      {
+        'name': 'Luxury Perfumes',
+        'icon': '💎',
+        'products': products
+            .where((p) => p.category == 'Luxury Perfumes')
+            .toList(),
+      },
+      {
+        'name': 'Arabic Perfumes',
+        'icon': '🏺',
+        'products': products
+            .where((p) => p.category == 'Arabic Perfumes')
+            .toList(),
+      },
+    ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(product.name)),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+    return Column(
+      children: categories.map((category) {
+        final categoryProducts = category['products'] as List<Product>;
+        if (categoryProducts.isEmpty) return const SizedBox.shrink();
+
+        return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Image.network(
-                product.imageUrl,
-                height: 200,
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              product.name,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text(product.description),
-            const SizedBox(height: 16),
             Row(
               children: [
                 Text(
-                  '₹${product.mrp.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    decoration: TextDecoration.lineThrough,
-                    color: Colors.grey,
-                  ),
+                  category['icon'] as String,
+                  style: const TextStyle(fontSize: 24),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Text(
-                  '₹${product.priceAfterOffer.toStringAsFixed(2)}',
-                  style: const TextStyle(
+                  category['name'] as String,
+                  style: TextStyle(
+                    fontSize: isMobile ? 20 : 24,
                     fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                    color: const Color(0xFF0C1B33),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.red[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${product.offer.toStringAsFixed(0)}% OFF',
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
+                const Spacer(),
+                if (categoryProducts.length > 4)
+                  TextButton(
+                    onPressed: () => context.push('/products'),
+                    child: Text(
+                      'View All (${categoryProducts.length})',
+                      style: const TextStyle(
+                        color: Color(0xFF0C1B33),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Add to wishlist
+            const SizedBox(height: 16),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: gridCrossAxisCount,
+                childAspectRatio: isMobile ? 0.65 : 0.7,
+                crossAxisSpacing: isMobile ? 12 : 16,
+                mainAxisSpacing: isMobile ? 12 : 16,
+              ),
+              itemCount: categoryProducts.length > 4
+                  ? 4
+                  : categoryProducts.length,
+              itemBuilder: (context, index) {
+                final product = categoryProducts[index];
+                return GestureDetector(
+                  onTap: () {
+                    context.push('/product/${product.id}', extra: product);
                   },
-                  icon: const Icon(Icons.favorite_border),
-                  label: const Text('Wishlist'),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Add to cart
-                  },
-                  icon: const Icon(Icons.shopping_cart),
-                  label: const Text('Add to Cart'),
-                ),
-              ],
+                  child: ProductCard(product: product, rating: 4.5),
+                );
+              },
             ),
+            const SizedBox(height: 32),
           ],
-        ),
-      ),
+        );
+      }).toList(),
     );
   }
 }

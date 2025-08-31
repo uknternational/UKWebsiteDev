@@ -9,13 +9,16 @@ import 'admin_coupon_bloc.dart';
 import 'carousel_repository.dart';
 import 'offer_repository.dart';
 import 'review_repository.dart';
+import 'about_us_repository.dart';
 import '../../models/product_model.dart';
 import '../../models/coupon_model.dart';
 import '../../models/carousel_image_model.dart';
 import '../../models/offer_model.dart';
 import '../../models/customer_review_model.dart';
+import '../../models/about_us_model.dart';
 import '../../services/storage_service.dart';
 import '../../core/config/environment.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class EnhancedAdminDashboard extends StatefulWidget {
   const EnhancedAdminDashboard({super.key});
@@ -31,7 +34,7 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     EnvironmentConfig.initialize(Environment.staging);
   }
 
@@ -71,17 +74,21 @@ class _EnhancedAdminDashboardState extends State<EnhancedAdminDashboard>
               Tab(text: 'Offers'),
               Tab(text: 'Reviews'),
               Tab(text: 'Coupons'),
+              Tab(text: 'About Us'),
+              Tab(text: 'Admin Management'),
             ],
           ),
         ),
         body: TabBarView(
           controller: _tabController,
-          children: const [
-            _ProductAdminSection(),
-            _CarouselAdminSection(),
-            _OffersAdminSection(),
-            _ReviewsAdminSection(),
-            _CouponAdminSection(),
+          children: [
+            const _ProductAdminSection(),
+            const _CarouselAdminSection(),
+            const _OffersAdminSection(),
+            const _ReviewsAdminSection(),
+            const _CouponAdminSection(),
+            const _AboutUsAdminSection(),
+            const _AdminManagementSection(),
           ],
         ),
       ),
@@ -895,12 +902,302 @@ class _ReviewsAdminSectionState extends State<_ReviewsAdminSection> {
   }
 }
 
-class _CouponAdminSection extends StatelessWidget {
+class _CouponAdminSection extends StatefulWidget {
   const _CouponAdminSection();
 
   @override
+  State<_CouponAdminSection> createState() => _CouponAdminSectionState();
+}
+
+class _CouponAdminSectionState extends State<_CouponAdminSection> {
+  List<Coupon> coupons = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCoupons();
+  }
+
+  Future<void> _loadCoupons() async {
+    try {
+      final couponList = await CouponRepository().fetchAllCoupons();
+      setState(() {
+        coupons = couponList;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Existing Coupon Management'));
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Coupons',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add),
+                label: const Text('Add Coupon'),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => _CouponDialog(onSaved: _loadCoupons),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : coupons.isEmpty
+                ? const Center(child: Text('No coupons found.'))
+                : ListView.builder(
+                    itemCount: coupons.length,
+                    itemBuilder: (context, index) {
+                      final coupon = coupons[index];
+                      return Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          leading: const Icon(
+                            Icons.card_giftcard,
+                            color: Color(0xFF0C1B33),
+                          ),
+                          title: Text(
+                            coupon.code,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Discount: ${coupon.discount}%'),
+                              Text(
+                                'Expires: ${coupon.expiry.toLocal().toString().split(' ')[0]}',
+                                style: TextStyle(
+                                  color: coupon.expiry.isBefore(DateTime.now())
+                                      ? Colors.red
+                                      : Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                'Status: ${coupon.isActive ? 'Active' : 'Inactive'}',
+                                style: TextStyle(
+                                  color: coupon.isActive
+                                      ? Colors.green
+                                      : Colors.red,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => _CouponDialog(
+                                      coupon: coupon,
+                                      onSaved: _loadCoupons,
+                                    ),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => _deleteCoupon(coupon.id),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteCoupon(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Coupon'),
+        content: const Text('Are you sure you want to delete this coupon?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await CouponRepository().deleteCoupon(id);
+        _loadCoupons();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Coupon deleted successfully')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error deleting coupon: $e')));
+      }
+    }
+  }
+}
+
+// Coupon Dialog
+class _CouponDialog extends StatefulWidget {
+  final Coupon? coupon;
+  final VoidCallback onSaved;
+
+  const _CouponDialog({this.coupon, required this.onSaved});
+
+  @override
+  State<_CouponDialog> createState() => _CouponDialogState();
+}
+
+class _CouponDialogState extends State<_CouponDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _codeController;
+  late final TextEditingController _discountController;
+  late DateTime _expiry;
+  bool _isActive = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.coupon;
+    _codeController = TextEditingController(text: c?.code ?? '');
+    _discountController = TextEditingController(
+      text: c?.discount.toString() ?? '',
+    );
+    _expiry = c?.expiry ?? DateTime.now().add(const Duration(days: 30));
+    _isActive = c?.isActive ?? true;
+  }
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    _discountController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
+      final now = DateTime.now();
+      final coupon = Coupon(
+        id:
+            widget.coupon?.id ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
+        code: _codeController.text.trim(),
+        discount: double.tryParse(_discountController.text) ?? 0.0,
+        expiry: _expiry,
+        isActive: _isActive,
+        createdAt: widget.coupon?.createdAt ?? now,
+      );
+
+      if (widget.coupon == null) {
+        CouponRepository().addCoupon(coupon);
+      } else {
+        CouponRepository().updateCoupon(coupon);
+      }
+      Navigator.pop(context);
+      widget.onSaved();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.coupon == null ? 'Add Coupon' : 'Edit Coupon'),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _codeController,
+                decoration: const InputDecoration(labelText: 'Coupon Code'),
+                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _discountController,
+                decoration: const InputDecoration(labelText: 'Discount (%)'),
+                keyboardType: TextInputType.number,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Required';
+                  final discount = double.tryParse(v);
+                  if (discount == null || discount < 0 || discount > 100) {
+                    return 'Enter a valid percentage (0-100)';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Expiry Date'),
+                subtitle: Text('${_expiry.toLocal()}'.split(' ')[0]),
+                trailing: IconButton(
+                  icon: const Icon(Icons.calendar_today),
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _expiry,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) setState(() => _expiry = picked);
+                  },
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Active'),
+                value: _isActive,
+                onChanged: (v) => setState(() => _isActive = v),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(onPressed: _submit, child: const Text('Save')),
+      ],
+    );
   }
 }
 
@@ -1977,6 +2274,728 @@ class _ReviewDialogState extends State<_ReviewDialog> {
         ),
         ElevatedButton(onPressed: _submit, child: const Text('Save')),
       ],
+    );
+  }
+}
+
+// About Us Admin Section
+class _AboutUsAdminSection extends StatefulWidget {
+  const _AboutUsAdminSection();
+
+  @override
+  State<_AboutUsAdminSection> createState() => _AboutUsAdminSectionState();
+}
+
+class _AboutUsAdminSectionState extends State<_AboutUsAdminSection> {
+  List<AboutUsContent> aboutUsContents = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAboutUsContents();
+  }
+
+  Future<void> _loadAboutUsContents() async {
+    try {
+      final contents = await AboutUsRepository().fetchAllAboutUsContent();
+      setState(() {
+        aboutUsContents = contents;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'About Us Content',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add),
+                label: const Text('Add Content'),
+                onPressed: () {
+                  _showAboutUsDialog();
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : aboutUsContents.isEmpty
+                ? const Center(child: Text('No about us content found.'))
+                : ListView.builder(
+                    itemCount: aboutUsContents.length,
+                    itemBuilder: (context, index) {
+                      final content = aboutUsContents[index];
+                      return Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          content.title,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          content.subtitle,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: content.isActive
+                                          ? Colors.green[100]
+                                          : Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      content.isActive ? 'Active' : 'Inactive',
+                                      style: TextStyle(
+                                        color: content.isActive
+                                            ? Colors.green[700]
+                                            : Colors.grey[600],
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                content.mainDescription,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[700],
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Switch(
+                                    value: content.isActive,
+                                    onChanged: (value) {
+                                      _toggleContentStatus(content, value);
+                                    },
+                                  ),
+                                  const Spacer(),
+                                  IconButton(
+                                    icon: const Icon(Icons.edit),
+                                    onPressed: () {
+                                      _showAboutUsDialog(content);
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () {
+                                      _deleteAboutUsContent(content.id);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAboutUsDialog([AboutUsContent? content]) {
+    showDialog(
+      context: context,
+      builder: (ctx) => _AboutUsDialog(
+        content: content,
+        onSaved: () {
+          _loadAboutUsContents();
+        },
+      ),
+    );
+  }
+
+  void _toggleContentStatus(AboutUsContent content, bool isActive) async {
+    try {
+      final updatedContent = content.copyWith(isActive: isActive);
+      await AboutUsRepository().updateAboutUsContent(updatedContent);
+      _loadAboutUsContents();
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error updating content: $e')));
+    }
+  }
+
+  void _deleteAboutUsContent(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete About Us Content'),
+        content: const Text('Are you sure you want to delete this content?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await AboutUsRepository().deleteAboutUsContent(id);
+        _loadAboutUsContents();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Content deleted successfully')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error deleting content: $e')));
+      }
+    }
+  }
+}
+
+// About Us Dialog
+class _AboutUsDialog extends StatefulWidget {
+  final AboutUsContent? content;
+  final VoidCallback onSaved;
+
+  const _AboutUsDialog({this.content, required this.onSaved});
+
+  @override
+  State<_AboutUsDialog> createState() => _AboutUsDialogState();
+}
+
+class _AboutUsDialogState extends State<_AboutUsDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _titleController;
+  late final TextEditingController _subtitleController;
+  late final TextEditingController _mainDescriptionController;
+  late final TextEditingController _missionController;
+  late final TextEditingController _visionController;
+  late final TextEditingController _valuesController;
+  late final TextEditingController _heroImageUrlController;
+  late final TextEditingController _teamImageUrlController;
+  late final TextEditingController _featuresController;
+  bool _isActive = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.content;
+    _titleController = TextEditingController(text: c?.title ?? '');
+    _subtitleController = TextEditingController(text: c?.subtitle ?? '');
+    _mainDescriptionController = TextEditingController(
+      text: c?.mainDescription ?? '',
+    );
+    _missionController = TextEditingController(text: c?.mission ?? '');
+    _visionController = TextEditingController(text: c?.vision ?? '');
+    _valuesController = TextEditingController(text: c?.values ?? '');
+    _heroImageUrlController = TextEditingController(
+      text: c?.heroImageUrl ?? '',
+    );
+    _teamImageUrlController = TextEditingController(
+      text: c?.teamImageUrl ?? '',
+    );
+    _featuresController = TextEditingController(
+      text: c?.features.join('\n') ?? '',
+    );
+    _isActive = c?.isActive ?? true;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _subtitleController.dispose();
+    _mainDescriptionController.dispose();
+    _missionController.dispose();
+    _visionController.dispose();
+    _valuesController.dispose();
+    _heroImageUrlController.dispose();
+    _teamImageUrlController.dispose();
+    _featuresController.dispose();
+    super.dispose();
+  }
+
+  void _submit() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        final features = _featuresController.text
+            .split('\n')
+            .where((feature) => feature.trim().isNotEmpty)
+            .map((feature) => feature.trim())
+            .toList();
+
+        final content = AboutUsContent(
+          id:
+              widget.content?.id ??
+              DateTime.now().millisecondsSinceEpoch.toString(),
+          title: _titleController.text.trim(),
+          subtitle: _subtitleController.text.trim(),
+          mainDescription: _mainDescriptionController.text.trim(),
+          mission: _missionController.text.trim(),
+          vision: _visionController.text.trim(),
+          values: _valuesController.text.trim(),
+          heroImageUrl: _heroImageUrlController.text.trim(),
+          teamImageUrl: _teamImageUrlController.text.trim(),
+          features: features,
+          isActive: _isActive,
+          createdAt: widget.content?.createdAt ?? DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        if (widget.content == null) {
+          await AboutUsRepository().addAboutUsContent(content);
+        } else {
+          await AboutUsRepository().updateAboutUsContent(content);
+        }
+
+        widget.onSaved();
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('About Us content saved successfully')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving content: $e')));
+      }
+    }
+  }
+
+  void _uploadHeroImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 16),
+                Text('Uploading image...'),
+              ],
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        final Uint8List imageData = await image.readAsBytes();
+        final String fileName =
+            'aboutus_hero_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final String imageUrl = await StorageService().uploadCarouselImage(
+          imageData,
+          fileName,
+        );
+        setState(() {
+          _heroImageUrlController.text = imageUrl;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image uploaded successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error uploading image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _uploadTeamImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 16),
+                Text('Uploading image...'),
+              ],
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        final Uint8List imageData = await image.readAsBytes();
+        final String fileName =
+            'aboutus_team_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final String imageUrl = await StorageService().uploadCarouselImage(
+          imageData,
+          fileName,
+        );
+        setState(() {
+          _teamImageUrlController.text = imageUrl;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image uploaded successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error uploading image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  bool _isValidImageUrl(String url) {
+    if (url.isEmpty) return false;
+    try {
+      final uri = Uri.parse(url);
+      if (!uri.hasScheme || !uri.hasAuthority) return false;
+      final imageExtensions = [
+        '.jpg',
+        '.jpeg',
+        '.png',
+        '.gif',
+        '.webp',
+        '.svg',
+      ];
+      final hasImageExtension = imageExtensions.any(
+        (ext) => url.toLowerCase().contains(ext),
+      );
+      if (url.contains('supabase')) return true;
+      return hasImageExtension;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Widget _buildImagePreview(String url, VoidCallback onClear) {
+    if (url.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(8),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue[200]!),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              width: 60,
+              height: 60,
+              child: _isValidImageUrl(url)
+                  ? Image.network(
+                      url,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => const Icon(Icons.broken_image),
+                    )
+                  : const Icon(Icons.broken_image),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              url.contains('supabase')
+                  ? 'Image uploaded'
+                  : 'Image URL provided',
+              style: TextStyle(color: Colors.blue[700], fontSize: 12),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.clear, color: Colors.red, size: 18),
+            onPressed: onClear,
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        widget.content == null
+            ? 'Add About Us Content'
+            : 'Edit About Us Content',
+      ),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: 500,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(labelText: 'Title'),
+                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _subtitleController,
+                  decoration: const InputDecoration(labelText: 'Subtitle'),
+                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _mainDescriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Main Description',
+                  ),
+                  maxLines: 3,
+                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _missionController,
+                  decoration: const InputDecoration(labelText: 'Mission'),
+                  maxLines: 2,
+                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _visionController,
+                  decoration: const InputDecoration(labelText: 'Vision'),
+                  maxLines: 2,
+                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _valuesController,
+                  decoration: const InputDecoration(labelText: 'Values'),
+                  maxLines: 3,
+                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _heroImageUrlController,
+                  decoration: const InputDecoration(
+                    labelText: 'Hero Image URL (or upload below)',
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 8),
+                _buildImagePreview(
+                  _heroImageUrlController.text,
+                  () => setState(() => _heroImageUrlController.clear()),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _uploadHeroImage,
+                  icon: const Icon(Icons.cloud_upload),
+                  label: Text(
+                    _heroImageUrlController.text.isNotEmpty &&
+                            _heroImageUrlController.text.contains('supabase')
+                        ? 'Change Uploaded Image'
+                        : 'Upload Image',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _heroImageUrlController.text.isNotEmpty &&
+                            _heroImageUrlController.text.contains('supabase')
+                        ? Colors.orange
+                        : const Color(0xFF0C1B33),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _teamImageUrlController,
+                  decoration: const InputDecoration(
+                    labelText: 'Team/Vision Image URL (or upload below)',
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 8),
+                _buildImagePreview(
+                  _teamImageUrlController.text,
+                  () => setState(() => _teamImageUrlController.clear()),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _uploadTeamImage,
+                  icon: const Icon(Icons.cloud_upload),
+                  label: Text(
+                    _teamImageUrlController.text.isNotEmpty &&
+                            _teamImageUrlController.text.contains('supabase')
+                        ? 'Change Uploaded Image'
+                        : 'Upload Image',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _teamImageUrlController.text.isNotEmpty &&
+                            _teamImageUrlController.text.contains('supabase')
+                        ? Colors.orange
+                        : const Color(0xFF0C1B33),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _featuresController,
+                  decoration: const InputDecoration(
+                    labelText: 'Features (one per line)',
+                    hintText: 'Feature 1\nFeature 2\nFeature 3',
+                  ),
+                  maxLines: 5,
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  title: const Text('Active'),
+                  value: _isActive,
+                  onChanged: (value) {
+                    setState(() {
+                      _isActive = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(onPressed: _submit, child: const Text('Save')),
+      ],
+    );
+  }
+}
+
+// Admin Management Section
+class _AdminManagementSection extends StatelessWidget {
+  const _AdminManagementSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Admin Management',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Create New Admin User',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'To create a new admin user:',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('1. Go to Supabase dashboard'),
+                  const Text('2. Navigate to Authentication → Users'),
+                  const Text('3. Click "Add User" or "Invite User"'),
+                  const Text('4. Enter email and password'),
+                  const Text('5. User can then login to admin dashboard'),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // Open Supabase dashboard link
+                      launchUrl(Uri.parse('https://supabase.com/dashboard'));
+                    },
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Open Supabase Dashboard'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

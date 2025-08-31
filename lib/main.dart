@@ -20,6 +20,7 @@ import 'features/admin/admin_auth_bloc.dart';
 import 'features/admin/admin_auth_repository.dart';
 import 'features/admin/enhanced_admin_dashboard.dart';
 import 'features/products/product_card.dart';
+import 'features/about/about_us_screen.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 void main() async {
@@ -44,6 +45,10 @@ final _router = GoRouter(
         return '/admin-login';
       }
     }
+    // Redirect /admin to /admin-login
+    if (state.matchedLocation == '/admin') {
+      return '/admin-login';
+    }
     return null;
   },
   routes: [
@@ -59,6 +64,7 @@ final _router = GoRouter(
       path: '/admin/dashboard',
       builder: (context, state) => const EnhancedAdminDashboard(),
     ),
+    GoRoute(path: '/about', builder: (context, state) => const AboutUsScreen()),
     GoRoute(
       path: '/products',
       builder: (context, state) => const _AllProductsScreen(),
@@ -113,6 +119,7 @@ class _AllProductsScreen extends StatefulWidget {
 
 class _AllProductsScreenState extends State<_AllProductsScreen> {
   late final TextEditingController _searchController;
+  String? selectedCategory;
 
   @override
   void initState() {
@@ -131,9 +138,27 @@ class _AllProductsScreenState extends State<_AllProductsScreen> {
   void _onSearchChanged() {
     final query = _searchController.text.trim();
     if (query.isEmpty) {
-      context.read<ProductBloc>().add(LoadProducts());
+      if (selectedCategory != null) {
+        context.read<ProductBloc>().add(
+          FilterProductsByCategory(selectedCategory!),
+        );
+      } else {
+        context.read<ProductBloc>().add(LoadProducts());
+      }
     } else {
       context.read<ProductBloc>().add(SearchProducts(query));
+    }
+  }
+
+  void _onCategorySelected(String? category) {
+    setState(() {
+      selectedCategory = category;
+    });
+
+    if (category != null) {
+      context.read<ProductBloc>().add(FilterProductsByCategory(category));
+    } else {
+      context.read<ProductBloc>().add(LoadProducts());
     }
   }
 
@@ -226,16 +251,63 @@ class _AllProductsScreenState extends State<_AllProductsScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: 'Search products...',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  onChanged: (_) => _onSearchChanged(),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Search products...',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      onChanged: (_) => _onSearchChanged(),
+                    ),
+                    const SizedBox(height: 16),
+                    // Category Filter
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          FilterChip(
+                            label: const Text('All'),
+                            selected: selectedCategory == null,
+                            onSelected: (_) => _onCategorySelected(null),
+                            selectedColor: const Color(0xFF0C1B33),
+                            checkmarkColor: Colors.white,
+                          ),
+                          const SizedBox(width: 8),
+                          FilterChip(
+                            label: const Text('👑 Premium'),
+                            selected: selectedCategory == 'Premium Perfumes',
+                            onSelected: (_) =>
+                                _onCategorySelected('Premium Perfumes'),
+                            selectedColor: const Color(0xFF0C1B33),
+                            checkmarkColor: Colors.white,
+                          ),
+                          const SizedBox(width: 8),
+                          FilterChip(
+                            label: const Text('💎 Luxury'),
+                            selected: selectedCategory == 'Luxury Perfumes',
+                            onSelected: (_) =>
+                                _onCategorySelected('Luxury Perfumes'),
+                            selectedColor: const Color(0xFF0C1B33),
+                            checkmarkColor: Colors.white,
+                          ),
+                          const SizedBox(width: 8),
+                          FilterChip(
+                            label: const Text('🏺 Arabic'),
+                            selected: selectedCategory == 'Arabic Perfumes',
+                            onSelected: (_) =>
+                                _onCategorySelected('Arabic Perfumes'),
+                            selectedColor: const Color(0xFF0C1B33),
+                            checkmarkColor: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
@@ -245,7 +317,34 @@ class _AllProductsScreenState extends State<_AllProductsScreen> {
                       return const Center(child: CircularProgressIndicator());
                     } else if (state is ProductLoaded) {
                       if (state.products.isEmpty) {
-                        return const Center(child: Text('No products found.'));
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 64,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                selectedCategory != null
+                                    ? 'No products found in ${selectedCategory}'
+                                    : 'No products found',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              if (selectedCategory != null)
+                                ElevatedButton(
+                                  onPressed: () => _onCategorySelected(null),
+                                  child: const Text('View All Products'),
+                                ),
+                            ],
+                          ),
+                        );
                       }
                       return GridView.builder(
                         padding: const EdgeInsets.all(16),
