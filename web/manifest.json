@@ -1,13 +1,14 @@
 {
-    "name": "uk_international",
-    "short_name": "uk_international",
+    "name": "UK International Perfumes",
+    "short_name": "UK Perfumes",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0C1B33",
+    "theme_color": "#0C1B33",
+    "description": "Premium luxury fragrances - Arabic, Premium, and Luxurious perfumes with authentic scents and fast delivery.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "categories": ["shopping", "lifestyle"],
     "icons": [
         {
             "src": "icons/Icon-192.png",

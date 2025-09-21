@@ -26,7 +26,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize environment configuration
-  EnvironmentConfig.initialize(Environment.staging); // Use staging database
+  EnvironmentConfig.initialize(Environment.staging); // Use staging database with all your data
 
   // Initialize Supabase
   await SupabaseService().init();
