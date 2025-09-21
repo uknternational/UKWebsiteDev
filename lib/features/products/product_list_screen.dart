@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'product_bloc.dart';
-import 'product_repository.dart';
 import '../../models/product_model.dart';
+import '../../widgets/animated_discount_banner.dart';
 import '../../models/carousel_image_model.dart';
 import '../../models/offer_model.dart';
 import '../../models/customer_review_model.dart';
@@ -29,7 +29,6 @@ class ProductListScreen extends StatefulWidget {
 
 class _ProductListScreenState extends State<ProductListScreen> {
   final PageController _pageController = PageController();
-  int _currentCarouselIndex = 0;
   List<CarouselImage> _carouselImages = [];
   List<Offer> _offers = [];
   List<CustomerReview> _reviews = [];
@@ -83,9 +82,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   void _onCarouselPageChanged(int index, CarouselPageChangedReason reason) {
-    setState(() {
-      _currentCarouselIndex = index;
-    });
+    // Carousel page changed - can be used for indicators if needed
   }
 
   // Updated categories for Premium, Luxury, Arabic perfumes
@@ -275,62 +272,62 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Categories - Fixed overflow
-                      SizedBox(
-                        height: isMobile ? 100 : 110,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          itemCount: categories.length,
-                          separatorBuilder: (_, __) =>
-                              SizedBox(width: isMobile ? 16 : 24),
-                          itemBuilder: (context, i) => GestureDetector(
-                            onTap: () =>
-                                _onCategoryTap(categories[i]['label']!),
-                            child: Container(
-                              width: isMobile ? 80 : 90,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  CircleAvatar(
-                                    radius: isMobile ? 25 : 30,
-                                    backgroundColor:
-                                        selectedCategory ==
-                                            categories[i]['label']
-                                        ? const Color(0xFF0C1B33)
-                                        : const Color(0xFFECD9B0),
-                                    child: Text(
-                                      categories[i]['icon']!,
-                                      style: TextStyle(
-                                        fontSize: isMobile ? 24 : 32,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Flexible(
-                                    child: Text(
-                                      categories[i]['label']!,
-                                      style: TextStyle(
-                                        fontSize: isMobile ? 11 : 14,
-                                        fontWeight: FontWeight.w600,
-                                        color:
-                                            selectedCategory ==
-                                                categories[i]['label']
-                                            ? const Color(0xFF0C1B33)
-                                            : Colors.black,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                      // Categories - Commented out for now
+                      // SizedBox(
+                      //   height: isMobile ? 100 : 110,
+                      //   child: ListView.separated(
+                      //     scrollDirection: Axis.horizontal,
+                      //     padding: const EdgeInsets.symmetric(horizontal: 8),
+                      //     itemCount: categories.length,
+                      //     separatorBuilder: (_, __) =>
+                      //         SizedBox(width: isMobile ? 16 : 24),
+                      //     itemBuilder: (context, i) => GestureDetector(
+                      //       onTap: () =>
+                      //           _onCategoryTap(categories[i]['label']!),
+                      //       child: Container(
+                      //         width: isMobile ? 80 : 90,
+                      //         child: Column(
+                      //           mainAxisSize: MainAxisSize.min,
+                      //           children: [
+                      //             CircleAvatar(
+                      //               radius: isMobile ? 25 : 30,
+                      //               backgroundColor:
+                      //                   selectedCategory ==
+                      //                       categories[i]['label']
+                      //                   ? const Color(0xFF0C1B33)
+                      //                   : const Color(0xFFECD9B0),
+                      //               child: Text(
+                      //                 categories[i]['icon']!,
+                      //                 style: TextStyle(
+                      //                   fontSize: isMobile ? 24 : 32,
+                      //                 ),
+                      //               ),
+                      //             ),
+                      //             const SizedBox(height: 8),
+                      //             Flexible(
+                      //               child: Text(
+                      //                 categories[i]['label']!,
+                      //                 style: TextStyle(
+                      //                   fontSize: isMobile ? 11 : 14,
+                      //                   fontWeight: FontWeight.w600,
+                      //                   color:
+                      //                       selectedCategory ==
+                      //                           categories[i]['label']
+                      //                       ? const Color(0xFF0C1B33)
+                      //                       : Colors.black,
+                      //                 ),
+                      //                 textAlign: TextAlign.center,
+                      //                 maxLines: 2,
+                      //                 overflow: TextOverflow.ellipsis,
+                      //               ),
+                      //             ),
+                      //           ],
+                      //         ),
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ),
+                      // const SizedBox(height: 24),
 
                       // Offers - Fixed constraints
                       if (_offers.isNotEmpty) ...[
@@ -398,6 +395,92 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         ),
                         const SizedBox(height: 24),
                       ],
+
+                      // UK International Logo Section - Enhanced
+                      Center(
+                        child: Container(
+                          margin: EdgeInsets.symmetric(
+                            vertical: isMobile ? 20 : 32,
+                          ),
+                          padding: EdgeInsets.all(isMobile ? 16 : 24),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 20,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Image.asset(
+                            'assets/logo.png',
+                            height: isMobile
+                                ? 120
+                                : isTablet
+                                ? 180
+                                : 220,
+                            width: isMobile
+                                ? 280
+                                : isTablet
+                                ? 400
+                                : 500,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  height: isMobile
+                                      ? 120
+                                      : isTablet
+                                      ? 180
+                                      : 220,
+                                  width: isMobile
+                                      ? 280
+                                      : isTablet
+                                      ? 400
+                                      : 500,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        const Color(0xFF0C1B33),
+                                        const Color(0xFFA9744F),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          'UK INTERNATIONAL',
+                                          style: TextStyle(
+                                            fontSize: isMobile ? 18 : 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                            letterSpacing: 2,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'PERFUMES',
+                                          style: TextStyle(
+                                            fontSize: isMobile ? 14 : 18,
+                                            fontWeight: FontWeight.w300,
+                                            color: Colors.white70,
+                                            letterSpacing: 4,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                          ),
+                        ),
+                      ),
 
                       // Bestsellers with improved button
                       Row(
@@ -918,20 +1001,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
-  void _onCategoryTap(String category) {
-    setState(() {
-      selectedCategory = selectedCategory == category ? null : category;
-    });
-    // Trigger product filtering
-    if (selectedCategory != null) {
-      context.read<ProductBloc>().add(
-        FilterProductsByCategory(selectedCategory!),
-      );
-    } else {
-      context.read<ProductBloc>().add(LoadProducts());
-    }
-  }
-
   Widget _buildProductCategories(
     List<Product> products,
     bool isMobile,
@@ -943,6 +1012,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       {
         'name': 'Premium Perfumes',
         'icon': '👑',
+        'discount': '60',
         'products': products
             .where((p) => p.category == 'Premium Perfumes')
             .toList(),
@@ -950,6 +1020,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       {
         'name': 'Luxury Perfumes',
         'icon': '💎',
+        'discount': '50',
         'products': products
             .where((p) => p.category == 'Luxury Perfumes')
             .toList(),
@@ -957,6 +1028,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       {
         'name': 'Arabic Perfumes',
         'icon': '🏺',
+        'discount': '50',
         'products': products
             .where((p) => p.category == 'Arabic Perfumes')
             .toList(),
@@ -978,15 +1050,28 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   style: const TextStyle(fontSize: 24),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  category['name'] as String,
-                  style: TextStyle(
-                    fontSize: isMobile ? 20 : 24,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0C1B33),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category['name'] as String,
+                        style: TextStyle(
+                          fontSize: isMobile ? 20 : 24,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF0C1B33),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Animated Discount Banner with Party Effects
+                      AnimatedDiscountBanner(
+                        discount: category['discount'] as String,
+                        category: category['name'] as String,
+                        isMobile: isMobile,
+                      ),
+                    ],
                   ),
                 ),
-                const Spacer(),
                 if (categoryProducts.length > 4)
                   TextButton(
                     onPressed: () => context.push('/products'),

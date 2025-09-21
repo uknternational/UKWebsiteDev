@@ -21,7 +21,6 @@ import 'features/admin/admin_auth_repository.dart';
 import 'features/admin/enhanced_admin_dashboard.dart';
 import 'features/products/product_card.dart';
 import 'features/about/about_us_screen.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -630,21 +629,24 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     children: [
                       if (widget.product.offer > 0) ...[
                         Text(
-                          '₹${widget.product.mrp.toStringAsFixed(2)}',
-                          style: const TextStyle(
+                          '₹${widget.product.mrp.toStringAsFixed(0)}',
+                          style: TextStyle(
                             decoration: TextDecoration.lineThrough,
-                            color: Colors.grey,
-                            fontSize: 18,
+                            decorationThickness: 2.5,
+                            color: Colors.grey[500],
+                            fontSize: 20,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         const SizedBox(width: 12),
                       ],
                       Text(
-                        '₹${widget.product.priceAfterOffer.toStringAsFixed(2)}',
+                        '₹${widget.product.priceAfterOffer.toStringAsFixed(0)}',
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 32,
                           color: Color(0xFF0C1B33),
+                          letterSpacing: 1.0,
                         ),
                       ),
                       if (widget.product.offer > 0) ...[
@@ -660,10 +662,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           ),
                           child: Text(
                             '${widget.product.offer.toStringAsFixed(0)}% OFF',
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                            style: TextStyle(
+                              color: Colors.red[700],
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
@@ -673,11 +676,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   if (widget.product.offer > 0) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'You save ₹${(widget.product.mrp - widget.product.priceAfterOffer).toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
+                      'You save ₹${(widget.product.mrp - widget.product.priceAfterOffer).toStringAsFixed(0)}',
+                      style: TextStyle(
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        letterSpacing: 0.3,
                       ),
                     ),
                   ],
@@ -1005,21 +1009,24 @@ class _WishlistScreenState extends State<WishlistScreen> {
                                 children: [
                                   if (product.offer > 0) ...[
                                     Text(
-                                      '₹${product.mrp.toStringAsFixed(2)}',
-                                      style: const TextStyle(
+                                      '₹${product.mrp.toStringAsFixed(0)}',
+                                      style: TextStyle(
                                         decoration: TextDecoration.lineThrough,
-                                        color: Colors.grey,
-                                        fontSize: 12,
+                                        decorationThickness: 2,
+                                        color: Colors.grey[500],
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                   ],
                                   Text(
-                                    '₹${product.priceAfterOffer.toStringAsFixed(2)}',
+                                    '₹${product.priceAfterOffer.toStringAsFixed(0)}',
                                     style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18,
                                       color: Color(0xFF0C1B33),
+                                      letterSpacing: 0.5,
                                     ),
                                   ),
                                 ],
