@@ -14,10 +14,12 @@ class ProductCard extends StatelessWidget {
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 200;
         final isSmall = constraints.maxWidth < 160;
-        
+
         return Card(
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -41,133 +43,156 @@ class ProductCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      product.name,
-                      style: TextStyle(
-                        fontSize: isSmall ? 12 : 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: isSmall ? 1 : 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: isSmall ? 2 : 4),
-                    RatingBarIndicator(
-                      rating: rating,
-                      itemBuilder: (context, _) =>
-                          const Icon(Icons.star, color: Colors.amber),
-                      itemCount: 5,
-                      itemSize: isSmall ? 12.0 : 16.0,
-                      direction: Axis.horizontal,
+                    // Product name and stars in same row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            product.name,
+                            style: TextStyle(
+                              fontSize: isSmall ? 18 : 21, // 1.5x larger
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        RatingBarIndicator(
+                          rating: rating,
+                          itemBuilder: (context, _) =>
+                              const Icon(Icons.star, color: Colors.amber),
+                          itemCount: 5,
+                          itemSize: isSmall ? 18.0 : 24.0, // 1.5x larger
+                          direction: Axis.horizontal,
+                        ),
+                      ],
                     ),
                     SizedBox(height: isSmall ? 2 : 4),
                     // Responsive price section
                     if (isSmall) ...[
-                      // Stack prices vertically for very small cards
+                      // Stack prices vertically for very small cards - improved layout
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Prices in same row
                           Row(
                             children: [
-                              Expanded(
-                                child: Text(
-                                  '₹${product.mrp.toStringAsFixed(0)}',
-                                  style: TextStyle(
-                                    decoration: TextDecoration.lineThrough,
-                                    decorationThickness: 1.5,
-                                    color: Colors.grey[500],
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                              Text(
+                                '₹${product.mrp.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  decoration: TextDecoration.lineThrough,
+                                  decorationThickness: 2.25, // 1.5x larger
+                                  color: Colors.grey[500],
+                                  fontSize: 16.5, // 1.5x larger
+                                  fontWeight: FontWeight.w700, // Made bold
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 1,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.red[100],
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: Text(
-                                  '${product.offer.toStringAsFixed(0)}%',
-                                  style: TextStyle(
-                                    color: Colors.red[700],
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 10,
-                                    letterSpacing: 0.2,
-                                  ),
+                              const SizedBox(
+                                width: 6,
+                              ), // Add spacing between prices
+                              Text(
+                                '₹${product.priceAfterOffer.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  color: Color(0xFF0C1B33),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 22.5, // 1.5x larger
+                                  letterSpacing: 0.45, // 1.5x larger
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '₹${product.priceAfterOffer.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              color: Color(0xFF0C1B33),
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                              letterSpacing: 0.3,
+                          // Discount badge in separate row below
+                          const SizedBox(
+                            height: 4,
+                          ), // Add spacing between price row and discount
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6, // Increased padding
+                              vertical: 3, // Increased padding
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red[100],
+                              borderRadius: BorderRadius.circular(
+                                4,
+                              ), // Slightly more rounded
+                            ),
+                            child: Text(
+                              '${product.offer.toStringAsFixed(0)}% OFF',
+                              style: TextStyle(
+                                color: Colors.red[700],
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11, // Slightly smaller for better fit
+                                letterSpacing: 0.3, // 1.5x larger
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ],
                       ),
                     ] else ...[
-                      // Horizontal layout for larger cards
-                      Row(
+                      // Horizontal layout for larger cards - improved layout
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Flexible(
-                            flex: 2,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (product.offer > 0)
-                                  Text(
-                                    '₹${product.mrp.toStringAsFixed(0)}',
-                                    style: TextStyle(
-                                      decoration: TextDecoration.lineThrough,
-                                      decorationThickness: 2,
-                                      color: Colors.grey[500],
-                                      fontSize: isMobile ? 12 : 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
+                          // Prices in same row
+                          Row(
+                            children: [
+                              if (product.offer > 0) ...[
                                 Text(
-                                  '₹${product.priceAfterOffer.toStringAsFixed(0)}',
+                                  '₹${product.mrp.toStringAsFixed(0)}',
                                   style: TextStyle(
-                                    color: const Color(0xFF0C1B33),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: isMobile ? 16 : 18,
-                                    letterSpacing: 0.5,
+                                    decoration: TextDecoration.lineThrough,
+                                    decorationThickness: 3, // 1.5x larger
+                                    color: Colors.grey[500],
+                                    fontSize: isMobile ? 18 : 21, // 1.5x larger
+                                    fontWeight: FontWeight.w700, // Made bold
                                   ),
                                 ),
+                                const SizedBox(
+                                  width: 8,
+                                ), // Add spacing between prices
                               ],
-                            ),
+                              Text(
+                                '₹${product.priceAfterOffer.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  color: const Color(0xFF0C1B33),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: isMobile ? 24 : 27, // 1.5x larger
+                                  letterSpacing: 0.75, // 1.5x larger
+                                ),
+                              ),
+                            ],
                           ),
+                          // Discount badge in separate row below
                           if (product.offer > 0) ...[
-                            const SizedBox(width: 4),
-                            Flexible(
-                              flex: 1,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isMobile ? 4 : 6,
-                                  vertical: 2,
+                            const SizedBox(
+                              height: 6,
+                            ), // Add spacing between price row and discount
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isMobile
+                                    ? 8
+                                    : 10, // Increased padding
+                                vertical: isMobile ? 4 : 6, // Increased padding
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red[100],
+                                borderRadius: BorderRadius.circular(
+                                  6,
+                                ), // Slightly more rounded
+                              ),
+                              child: Text(
+                                '${product.offer.toStringAsFixed(0)}% OFF',
+                                style: TextStyle(
+                                  color: Colors.red[700],
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: isMobile
+                                      ? 12
+                                      : 14, // Slightly smaller for better fit
+                                  letterSpacing: 0.3, // 1.5x larger
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.red[100],
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '${product.offer.toStringAsFixed(0)}% OFF',
-                                  style: TextStyle(
-                                    color: Colors.red[700],
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: isMobile ? 10 : 12,
-                                    letterSpacing: 0.2,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ),
                           ],

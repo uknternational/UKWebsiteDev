@@ -26,7 +26,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize environment configuration
-  EnvironmentConfig.initialize(Environment.staging); // Use staging database with all your data
+  EnvironmentConfig.initialize(
+    Environment.staging,
+  ); // Use staging database with all your data
 
   // Initialize Supabase
   await SupabaseService().init();
@@ -104,6 +106,14 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         routerConfig: _router,
         debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(1.0)),
+            child: child!,
+          );
+        },
       ),
     );
   }
@@ -586,13 +596,31 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              widget.product.name,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0C1B33),
-              ),
+            // Product name and stars in same row (matching product list layout)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.product.name,
+                    style: const TextStyle(
+                      fontSize: 28, // 1.5x larger than product list
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0C1B33),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Rating stars
+                Row(
+                  children: List.generate(5, (index) {
+                    return Icon(
+                      index < 4 ? Icons.star : Icons.star_half,
+                      color: Colors.amber,
+                      size: 24, // 1.5x larger than product list
+                    );
+                  }),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
@@ -625,52 +653,58 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
-                  Row(
+                  // Price layout matching product list - vertical stack
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (widget.product.offer > 0) ...[
                         Text(
                           '₹${widget.product.mrp.toStringAsFixed(0)}',
                           style: TextStyle(
                             decoration: TextDecoration.lineThrough,
-                            decorationThickness: 2.5,
+                            decorationThickness: 3, // 1.5x larger
                             color: Colors.grey[500],
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500,
+                            fontSize: 24, // 1.5x larger
+                            fontWeight: FontWeight.w700, // Bold
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(height: 8),
                       ],
-                      Text(
-                        '₹${widget.product.priceAfterOffer.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 32,
-                          color: Color(0xFF0C1B33),
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      if (widget.product.offer > 0) ...[
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red[100],
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '${widget.product.offer.toStringAsFixed(0)}% OFF',
-                            style: TextStyle(
-                              color: Colors.red[700],
+                      Row(
+                        children: [
+                          Text(
+                            '₹${widget.product.priceAfterOffer.toStringAsFixed(0)}',
+                            style: const TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              letterSpacing: 0.5,
+                              fontSize: 36, // 1.5x larger
+                              color: Color(0xFF0C1B33),
+                              letterSpacing: 0.75, // 1.5x larger
                             ),
                           ),
-                        ),
-                      ],
+                          if (widget.product.offer > 0) ...[
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red[100],
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '${widget.product.offer.toStringAsFixed(0)}% OFF',
+                                style: TextStyle(
+                                  color: Colors.red[700],
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18, // 1.5x larger
+                                  letterSpacing: 0.3, // 1.5x larger
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
                   if (widget.product.offer > 0) ...[
@@ -738,37 +772,38 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               ],
             ),
             const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[200]!),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.local_shipping, color: Colors.blue),
-                      SizedBox(width: 8),
-                      Text(
-                        'Delivery Information',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Text('• Free delivery on orders above ₹499'),
-                  Text('• Standard delivery: 3-5 business days'),
-                  Text('• Express delivery available'),
-                  Text('• Cash on delivery available'),
-                ],
-              ),
-            ),
+            // Delivery Information Widget - Commented out as requested
+            // Container(
+            //   padding: const EdgeInsets.all(16),
+            //   decoration: BoxDecoration(
+            //     color: Colors.blue[50],
+            //     borderRadius: BorderRadius.circular(12),
+            //     border: Border.all(color: Colors.blue[200]!),
+            //   ),
+            //   child: const Column(
+            //     crossAxisAlignment: CrossAxisAlignment.start,
+            //     children: [
+            //       Row(
+            //         children: [
+            //           Icon(Icons.local_shipping, color: Colors.blue),
+            //           SizedBox(width: 8),
+            //           Text(
+            //             'Delivery Information',
+            //             style: TextStyle(
+            //               fontWeight: FontWeight.bold,
+            //               color: Colors.blue,
+            //             ),
+            //           ),
+            //         ],
+            //       ),
+            //       SizedBox(height: 8),
+            //       Text('• Free delivery on orders above ₹499'),
+            //       Text('• Standard delivery: 3-5 business days'),
+            //       Text('• Express delivery available'),
+            //       Text('• Cash on delivery available'),
+            //     ],
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -1015,7 +1050,8 @@ class _WishlistScreenState extends State<WishlistScreen> {
                                         decorationThickness: 2,
                                         color: Colors.grey[500],
                                         fontSize: 14,
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight:
+                                            FontWeight.w700, // Made bold
                                       ),
                                     ),
                                     const SizedBox(width: 8),

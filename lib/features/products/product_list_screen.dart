@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:math' as math;
 import 'product_bloc.dart';
 import '../../models/product_model.dart';
-import '../../widgets/animated_discount_banner.dart';
+import '../../widgets/dhamaka_offer_banner.dart';
 import '../../models/carousel_image_model.dart';
 import '../../models/offer_model.dart';
 import '../../models/customer_review_model.dart';
@@ -222,8 +223,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
           final gridCrossAxisCount = isDesktop
               ? 4
               : isTablet
-              ? 3
-              : 2;
+              ? 2 // Reduced from 3 to 2 for wider tiles
+              : 1; // Reduced from 2 to 1 for mobile to make tiles much wider
 
           return SingleChildScrollView(
             child: Column(
@@ -262,6 +263,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         )
                         .toList(),
                   ),
+
+                // Dhamaka Offer Banner - Animated
+                DhamakaOfferBanner(isMobile: isMobile, isTablet: isTablet),
 
                 // Content with padding
                 Padding(
@@ -396,92 +400,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         const SizedBox(height: 24),
                       ],
 
-                      // UK International Logo Section - Enhanced
-                      Center(
-                        child: Container(
-                          margin: EdgeInsets.symmetric(
-                            vertical: isMobile ? 20 : 32,
-                          ),
-                          padding: EdgeInsets.all(isMobile ? 16 : 24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 20,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Image.asset(
-                            'assets/logo.png',
-                            height: isMobile
-                                ? 120
-                                : isTablet
-                                ? 180
-                                : 220,
-                            width: isMobile
-                                ? 280
-                                : isTablet
-                                ? 400
-                                : 500,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  height: isMobile
-                                      ? 120
-                                      : isTablet
-                                      ? 180
-                                      : 220,
-                                  width: isMobile
-                                      ? 280
-                                      : isTablet
-                                      ? 400
-                                      : 500,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        const Color(0xFF0C1B33),
-                                        const Color(0xFFA9744F),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          'UK INTERNATIONAL',
-                                          style: TextStyle(
-                                            fontSize: isMobile ? 18 : 24,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                            letterSpacing: 2,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'PERFUMES',
-                                          style: TextStyle(
-                                            fontSize: isMobile ? 14 : 18,
-                                            fontWeight: FontWeight.w300,
-                                            color: Colors.white70,
-                                            letterSpacing: 4,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                          ),
-                        ),
-                      ),
-
                       // Bestsellers with improved button
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -554,7 +472,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: gridCrossAxisCount,
-                                    childAspectRatio: isMobile ? 0.65 : 0.7,
+                                    childAspectRatio: isMobile
+                                        ? 0.8
+                                        : 0.7, // Increased from 0.65 to 0.8 for wider mobile tiles
                                     crossAxisSpacing: isMobile ? 12 : 16,
                                     mainAxisSpacing: isMobile ? 12 : 16,
                                   ),
@@ -1051,27 +971,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        category['name'] as String,
-                        style: TextStyle(
-                          fontSize: isMobile ? 20 : 24,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0C1B33),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Animated Discount Banner with Party Effects
-                      AnimatedDiscountBanner(
-                        discount: category['discount'] as String,
-                        category: category['name'] as String,
-                        isMobile: isMobile,
-                      ),
-                    ],
+                  child: Text(
+                    category['name'] as String,
+                    style: TextStyle(
+                      fontSize: isMobile ? 20 : 24,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF0C1B33),
+                    ),
                   ),
                 ),
+                // Small Dhamaka Offer between category name and View All
+                _buildSmallDhamakaOffer(
+                  category['discount'] as String,
+                  isMobile,
+                ),
+                const SizedBox(width: 12),
                 if (categoryProducts.length > 4)
                   TextButton(
                     onPressed: () => context.push('/products'),
@@ -1091,7 +1005,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: gridCrossAxisCount,
-                childAspectRatio: isMobile ? 0.65 : 0.7,
+                childAspectRatio: isMobile
+                    ? 0.8
+                    : 0.7, // Increased from 0.65 to 0.8 for wider mobile tiles
                 crossAxisSpacing: isMobile ? 12 : 16,
                 mainAxisSpacing: isMobile ? 12 : 16,
               ),
@@ -1113,5 +1029,377 @@ class _ProductListScreenState extends State<ProductListScreen> {
         );
       }).toList(),
     );
+  }
+
+  Widget _buildSmallDhamakaOffer(String discount, bool isMobile) {
+    return SizedBox(
+      width: isMobile ? 80 : 100,
+      height: isMobile ? 40 : 50,
+      child: _SmallDhamakaOfferWidget(discount: discount, isMobile: isMobile),
+    );
+  }
+}
+
+class _SmallDhamakaOfferWidget extends StatefulWidget {
+  final String discount;
+  final bool isMobile;
+
+  const _SmallDhamakaOfferWidget({
+    required this.discount,
+    required this.isMobile,
+  });
+
+  @override
+  State<_SmallDhamakaOfferWidget> createState() =>
+      _SmallDhamakaOfferWidgetState();
+}
+
+class _SmallDhamakaOfferWidgetState extends State<_SmallDhamakaOfferWidget>
+    with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late AnimationController _burstController;
+  late AnimationController _rotationController;
+  late AnimationController _popperController;
+
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _burstAnimation;
+  late Animation<double> _rotationAnimation;
+  late Animation<double> _popperAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Font pulsing animation (bigger to smaller)
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    _pulseController.repeat(reverse: true);
+
+    // Burst animation for explosion effects
+    _burstController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+    _burstAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _burstController, curve: Curves.easeOut));
+    _burstController.repeat();
+
+    // Rotation animation for burst elements
+    _rotationController = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    );
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 2 * math.pi).animate(
+      CurvedAnimation(parent: _rotationController, curve: Curves.linear),
+    );
+    _rotationController.repeat();
+
+    // Party popper animation
+    _popperController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _popperAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _popperController, curve: Curves.easeOut),
+    );
+    _popperController.repeat();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _burstController.dispose();
+    _rotationController.dispose();
+    _popperController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    try {
+      return AnimatedBuilder(
+        animation: Listenable.merge([
+          _pulseAnimation,
+          _burstAnimation,
+          _rotationAnimation,
+          _popperAnimation,
+        ]),
+        builder: (context, child) {
+          final rotationValue = _rotationAnimation.value;
+          final burstValue = _burstAnimation.value;
+          final popperValue = _popperAnimation.value;
+
+          return CustomPaint(
+            painter: _SmallDhamakaPainter(
+              burstProgress: burstValue,
+              rotation: rotationValue,
+              popperProgress: popperValue,
+              isMobile: widget.isMobile,
+            ),
+            child: Center(
+              child: Transform.scale(
+                scale: _pulseAnimation.value,
+                child: Text(
+                  '${widget.discount}% OFF',
+                  style: TextStyle(
+                    fontSize: widget.isMobile ? 10.0 : 12.0,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withOpacity(0.3),
+                        offset: const Offset(1, 1),
+                        blurRadius: 2,
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      // Fallback to simple container if animation fails
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFE53E3E), Color(0xFFC53030)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          '${widget.discount}% OFF',
+          style: TextStyle(
+            fontSize: widget.isMobile ? 10.0 : 12.0,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            letterSpacing: 0.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+  }
+}
+
+class _SmallDhamakaPainter extends CustomPainter {
+  final double burstProgress;
+  final double rotation;
+  final double popperProgress;
+  final bool isMobile;
+
+  _SmallDhamakaPainter({
+    required this.burstProgress,
+    required this.rotation,
+    required this.popperProgress,
+    required this.isMobile,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    try {
+      final center = Offset(size.width / 2, size.height / 2);
+      final paint = Paint()..style = PaintingStyle.fill;
+
+      // Draw starburst background
+      _drawStarburst(canvas, center, size, paint, rotation, burstProgress);
+
+      // Draw party popper effects
+      _drawPartyPoppers(canvas, center, size, paint, rotation, popperProgress);
+
+      // Draw sparkles
+      _drawSparkles(canvas, center, size, paint, rotation, burstProgress);
+    } catch (e) {
+      // Fallback to simple red circle if custom painting fails
+      final center = Offset(size.width / 2, size.height / 2);
+      final paint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = const Color(0xFFE53E3E);
+      canvas.drawCircle(center, size.width * 0.4, paint);
+    }
+  }
+
+  void _drawStarburst(
+    Canvas canvas,
+    Offset center,
+    Size size,
+    Paint paint,
+    double rotationValue,
+    double burstValue,
+  ) {
+    final path = Path();
+    final baseRadius = size.width * 0.3;
+    final spikeLength = size.width * 0.1;
+    const int numSpikes = 6;
+
+    // Create dynamic starburst shape with sharp, energetic edges
+    for (int i = 0; i < numSpikes * 2; i++) {
+      final double angle = (math.pi / numSpikes) * i + rotationValue * 0.5;
+      final double radius = (i % 2 == 0)
+          ? baseRadius
+          : baseRadius + spikeLength * burstValue;
+      final double x = center.dx + radius * math.cos(angle);
+      final double y = center.dy + radius * math.sin(angle);
+
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+
+    // Fill with red gradient
+    final gradient = RadialGradient(
+      colors: [
+        const Color(0xFFE53E3E), // Red
+        const Color(0xFFC53030), // Darker red
+      ],
+      stops: const [0.0, 1.0],
+    );
+    paint.shader = gradient.createShader(
+      Rect.fromCircle(center: center, radius: size.width * 0.4),
+    );
+    canvas.drawPath(path, paint);
+
+    // Add a subtle border
+    paint.style = PaintingStyle.stroke;
+    paint.strokeWidth = 1.0;
+    paint.color = Colors.red[900]!.withOpacity(0.8);
+    canvas.drawPath(path, paint);
+  }
+
+  void _drawPartyPoppers(
+    Canvas canvas,
+    Offset center,
+    Size size,
+    Paint paint,
+    double rotationValue,
+    double popperValue,
+  ) {
+    paint.style = PaintingStyle.fill;
+
+    // Draw multiple party popper particles - enhanced for small widget
+    for (int i = 0; i < 16; i++) {
+      // Increased from 8 to 16
+      final angle = (i * 22.5 + rotationValue * 45) * math.pi / 180;
+      final distance = 25.0 * popperValue; // Increased from 15 to 25
+      final x = center.dx + math.cos(angle) * distance;
+      final y = center.dy + math.sin(angle) * distance;
+
+      // Colors matching the main banner - more colors
+      final colors = [
+        Colors.purple,
+        Colors.pink,
+        Colors.yellow,
+        Colors.lightBlue,
+        Colors.green,
+        Colors.orange,
+        Colors.red,
+        Colors.blue,
+        Colors.cyan,
+        Colors.lime,
+        Colors.indigo,
+        Colors.teal,
+      ];
+      paint.color = colors[i % colors.length].withOpacity(0.9 * popperValue);
+
+      // Draw circles of varying sizes - more variety
+      final radius = (0.8 + (i % 3) * 0.4) * popperValue; // More size variation
+      canvas.drawCircle(Offset(x, y), radius, paint);
+    }
+
+    // Add scattered confetti around the burst - increased area and count
+    for (int i = 0; i < 8; i++) {
+      // Increased from 4 to 8
+      final randomX =
+          center.dx +
+          (math.sin(popperValue * 2 * math.pi + i) *
+              size.width *
+              0.4); // Increased area
+      final randomY =
+          center.dy +
+          (math.cos(popperValue * 2 * math.pi + i) *
+              size.height *
+              0.4); // Increased area
+
+      final colors = [
+        Colors.purple,
+        Colors.pink,
+        Colors.yellow,
+        Colors.lightBlue,
+        Colors.cyan,
+        Colors.lime,
+      ];
+      paint.color = colors[i % colors.length].withOpacity(0.8 * popperValue);
+      canvas.drawCircle(
+        Offset(randomX, randomY),
+        (0.6 + (i % 2) * 0.3) * popperValue,
+        paint,
+      );
+    }
+
+    // Add extra burst particles for more pop in small widget
+    for (int i = 0; i < 6; i++) {
+      final burstAngle = (i * 60.0 + rotationValue * 60) * math.pi / 180;
+      final burstDistance = 35.0 * popperValue; // Larger area for small widget
+      final burstX = center.dx + math.cos(burstAngle) * burstDistance;
+      final burstY = center.dy + math.sin(burstAngle) * burstDistance;
+
+      final burstColors = [
+        Colors.purple,
+        Colors.pink,
+        Colors.yellow,
+        Colors.cyan,
+      ];
+      paint.color = burstColors[i % burstColors.length].withOpacity(
+        0.7 * popperValue,
+      );
+      canvas.drawCircle(Offset(burstX, burstY), 1.2 * popperValue, paint);
+    }
+  }
+
+  void _drawSparkles(
+    Canvas canvas,
+    Offset center,
+    Size size,
+    Paint paint,
+    double rotationValue,
+    double burstValue,
+  ) {
+    paint.style = PaintingStyle.fill;
+
+    // Draw sparkles around the burst
+    for (int i = 0; i < 4; i++) {
+      final sparkleAngle = (i * 90.0 + rotationValue * 45) * math.pi / 180;
+      final sparkleDistance = 15.0 * burstValue;
+      final sparkleX = center.dx + math.cos(sparkleAngle) * sparkleDistance;
+      final sparkleY = center.dy + math.sin(sparkleAngle) * sparkleDistance;
+
+      paint.color = Colors.white.withOpacity(0.9 * burstValue);
+      canvas.drawCircle(Offset(sparkleX, sparkleY), 1.5 * burstValue, paint);
+    }
+
+    // Draw central glow
+    paint.color = Colors.yellow[300]!.withOpacity(0.7 * burstValue);
+    canvas.drawCircle(center, 3.0 * burstValue, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return true;
   }
 }

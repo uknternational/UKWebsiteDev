@@ -18,7 +18,21 @@ class AppTheme {
         onSurface: AppConstants.midnightNavy,
       ),
       scaffoldBackgroundColor: AppConstants.classicCream,
-      textTheme: GoogleFonts.playfairDisplayTextTheme(),
+      textTheme: GoogleFonts.notoSansTextTheme().copyWith(
+        // Fallback fonts for better character coverage
+        bodyLarge: GoogleFonts.notoSans(),
+        bodyMedium: GoogleFonts.notoSans(),
+        bodySmall: GoogleFonts.notoSans(),
+        headlineLarge: GoogleFonts.notoSans(),
+        headlineMedium: GoogleFonts.notoSans(),
+        headlineSmall: GoogleFonts.notoSans(),
+        titleLarge: GoogleFonts.notoSans(),
+        titleMedium: GoogleFonts.notoSans(),
+        titleSmall: GoogleFonts.notoSans(),
+        labelLarge: GoogleFonts.notoSans(),
+        labelMedium: GoogleFonts.notoSans(),
+        labelSmall: GoogleFonts.notoSans(),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: AppConstants.midnightNavy,
         foregroundColor: AppConstants.offWhite,
